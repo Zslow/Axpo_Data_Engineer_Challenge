@@ -11,8 +11,6 @@ services:
 
   iot_data_generator:
     build: ./iot_data_generator
-    volumes:
-      - data:/app/data
     environment:
       - MQTT_HOST=mqtt_broker
       - MQTT_PORT=1883
@@ -22,6 +20,15 @@ services:
     depends_on:
       - mqtt_broker
 
+  cold_storage_data_subscriber:
+    build: ./cold_storage_data_subscriber
+    volumes:
+      - ./data:/app/data
+    environment:
+      - MQTT_HOST=mqtt_broker
+      - MQTT_PORT=1883
+      - MQTT_TOPIC=sensors
+      - LOGGING_LEVEL=20
+    depends_on:
+      - mqtt_broker
 
-volumes:
-  data: ~
