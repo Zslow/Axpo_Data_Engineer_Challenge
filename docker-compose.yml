@@ -32,3 +32,53 @@ services:
     depends_on:
       - mqtt_broker
 
+  # CrateDB
+  # https://github.com/crate/crate
+  cratedb:
+    image: crate:latest
+    container_name: cratedb
+    hostname: cratedb
+    ports:
+      - 4200:4200
+      - 5432:5432
+    volumes:
+      - ./data/crate/01:/data
+
+    healthcheck:
+      test: curl --max-time 25 http://localhost:4200 || exit 1
+      interval: 30s
+      timeout: 30s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    environment:
+      - CRATE_HEAP_SIZE=2g
+
+
+  lorry:
+    image: ghcr.io/daq-tools/lorrystream
+    container_name: lorrystream
+    network_mode: host
+    command: bash -c "sleep 5 && lorry relay 'mqtt://localhost:1883/sensors?content-type=json' 'crate://localhost:4200/?table=iot_temperature'"
+
+    depends_on:
+      - mqtt_broker
+      - iot_data_generator
+      - cratedb
+
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 120s
+
+  grafana:
+      image: grafana/grafana-enterprise
+      container_name: grafana
+      restart: unless-stopped
+      ports:
+        - '3000:3000'
+      volumes:
+      - ./data/grafana:/var/lib/grafana
