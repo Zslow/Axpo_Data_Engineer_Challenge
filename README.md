@@ -96,3 +96,42 @@ What we're looking for:
 
 * improve instructions above
 * let challenge be challenged by internals
+
+## Instructions to Replicate the environment
+
+1 Download this repo on your local system.
+
+2 Open a terminal into the directory and run ```docker compose up -d```
+
+Data will be persisted on a new directory named "data" created inside this path. 
+
+
+Open a Browser and Navigate to http://localhost:4200/ to access CrateDB UI.
+Default user is "crate", without password
+
+Open a Browser and Navigate to http://localhost:3000/ to access Grafana UI.
+Default user is "admin", password: "admin"
+
+### Additional steps for first time installations:
+
+Go to CrateDB and Run the following Query to create the table where the iot sensors data will be stored.
+
+    CREATE TABLE IF NOT EXISTS "doc"."iot_temperature" (
+    "id" TEXT,
+    "dt" TIMESTAMP WITH TIME ZONE,
+    "value" SMALLINT
+    )
+
+And this one for a View used by Grafana with the resampled data.
+
+    CREATE VIEW resampled_temp AS
+     SELECT "id", 
+     date_bin(CAST('1 minute' AS interval), "dt", 0) "dt_bin", 
+     mean("value") "value" 
+    FROM "doc"."iot_temperature" 
+    GROUP BY date_bin(CAST('1 minute' AS interval), "dt", 0), "id" 
+    ORDER BY 2 asc;
+
+Then go to Grafana and create a new Dashboard by importing the json found in this repo, in the directory "grafana_dashboard" and save the changes.
+
+At Last, reset the environment by running ```docker compose down``` and ```docker compose up -d```
